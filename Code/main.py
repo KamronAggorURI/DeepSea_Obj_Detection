@@ -9,6 +9,9 @@ import pathlib, shutil, glob, os, torch, random
 from yaspin import yaspin
 from model_Utils import train_test
 import pandas as pd
+import kagglehub as kh
+from PIL import Image, ImageDraw
+
 
 # Import Necessary Dataset(s)
 run = True
@@ -41,8 +44,10 @@ while run:
     run = False
   
 try:
-  train_test
+  train_test.train_test(model_choice, data_choice)
+  print('Training and Testing Complete!')
   
 except:
-  
-  
+  print('There was an error with the training and testing. Please check the logs for more information.')
+  print('Exiting...')
+  exit(1)
