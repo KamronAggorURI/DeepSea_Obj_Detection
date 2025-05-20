@@ -1,0 +1,14 @@
+shutil
+numpy
+pandas
+matplotlib
+seaborn
+scikit-learn
+glob
+yaspin
+ultralytics
+pathlib
+torch
+torchvision
+pillow
+kagglehub
