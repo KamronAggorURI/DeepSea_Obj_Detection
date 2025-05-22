@@ -25,14 +25,15 @@ class ModelUtils:
         self.results = None
 
     def set_model(self):
-        if self.model_choice == 1:
-            self.model = YOLO('yolov8n.pt') # Here we use the fishinv model
+        if self.model_choice == 1: # Pre-trained YOLOv11n Model
+            self.model = YOLO('yolov11n.pt') # Here we load pre-trained YOLO model
             
-        elif self.model_choice == 2:
-            self.model = YOLO('yolov8n.pt') # Here we use the deep fish model
+        elif self.model_choice == 2: # Use our latest model
+            self.model =  # Here we use our latest model from Colab; add your own model path here
 
-        elif self.model_choice == 3:
-            self.model = YOLO('yolov8n.pt') # Here we use the custom model; add your own model path here
+        elif self.model_choice == 3: # Train a new model
+            self.model = 
+
         else:
             raise ValueError("Invalid model choice")
         return self.model
@@ -130,7 +131,8 @@ class ModelUtils:
             self.set_seed()
             self.set_model_device()
             self.set_data_device()
-            self.train_model()
+            if self.model_choice == 1 or self.model_choice == 2:
+                self.train_model()  
             self.test_model()
             self.save_results()
             spinner.ok("✔")
@@ -151,5 +153,4 @@ class ModelUtils:
         self.test_model()
         self.save_results()
         self.cleanup()
-        print("Training and Testing Complete!")
         return True
