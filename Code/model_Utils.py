@@ -12,6 +12,21 @@ from yaspin import yaspin
 from ultralytics import YOLO
 from pathlib import Path
 
+# First, edit the .yaml file to include the correct paths for the train, val, and test directories.
+with open('datasets/FishInvSplit/data.yaml', 'r') as f:
+  data = f.read()
+data = data.replace('train: ../train/images', 'train: /content/FishInvSplit/train/images')
+data = data.replace('val: ../val/images', 'val: /content/FishInvSplit/val/images')
+data = data.replace('test: ../test/images', 'test: /content/FishInvSplit/test/images')
+with open('datasets/FishInvSplit/data.yaml', 'w') as f:
+  f.write(data)
+
+# Next, edit the Ultralytics/settings.json to ensure that the dataset directory is correct.
+with open('ultralytics/settings.json', 'r') as f:
+  data = f.read()
+data = data.replace('"dataset": "../datasets/FishInvSplit"', '"dataset": "/content/FishInvSplit"')
+with open('ultralytics/settings.json', 'w') as f:
+  f.write(data)
 
 # Define the ModelUtils class
 # This class will handle the model and data selection, training, testing, and result saving.
@@ -25,36 +40,35 @@ class ModelUtils:
         self.results = None
 
     def set_model(self):
-        if self.model_choice == 1: # Pre-trained YOLOv11n Model
-            self.model = YOLO('yolov11n.pt') # Here we load pre-trained YOLO model
+        if self.model_choice == '1': # Pre-trained YOLO Model
+            self.model = YOLO('yolov8n.pt') # Here we load pre-trained YOLO model
             
-        elif self.model_choice == 2: # Use our latest model
-            self.model =  # Here we use our latest model from Colab; add your own model path here
-
-        elif self.model_choice == 3: # Train a new model
-            self.model = 
+        elif self.model_choice == '2': # Use our latest model
+            with open('code/data/trained models/best.pt'):
+                self.model = YOLO('code/trained models/best.pt')
+                # Here we load our latest model from Colab; add your own model path here
 
         else:
             raise ValueError("Invalid model choice")
         return self.model
 
     def set_data(self):
-        if self.data_choice == 1:
-            self.data = 'data/fishinv.yaml'
+        if self.data_choice == '1':
+            self.data = 'datasets/FishInvSplit/data.yaml'
 
-        elif self.data_choice == 2:
+        elif self.data_choice == '2':
             self.data = 'data/fishinv_megafauna.yaml'
 
-        elif self.data_choice == 3:
+        elif self.data_choice == '3':
             self.data = 'data/deepfish.yaml'
 
-        elif self.data_choice == 4:
+        elif self.data_choice == '4':
             self.data = 'data/fishinv_deepfish.yaml'
 
-        elif self.data_choice == 5:
+        elif self.data_choice == '5':
             self.data = 'data/fishinv_megafauna_deepfish.yaml'
 
-        elif self.data_choice == 6:
+        elif self.data_choice == '6':
             self.data = 'data/baycampus.yaml'
 
         else:
@@ -131,7 +145,7 @@ class ModelUtils:
             self.set_seed()
             self.set_model_device()
             self.set_data_device()
-            if self.model_choice == 1 or self.model_choice == 2:
+            if self.model_choice == '1' or self.model_choice == '2':
                 self.train_model()  
             self.test_model()
             self.save_results()

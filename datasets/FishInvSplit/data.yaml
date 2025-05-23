@@ -1,0 +1,22 @@
+names:
+- bolbometopon_muricatum
+- chaetodontidae
+- cheilinus_undulatus
+- cromileptes_altivelis
+- fish
+- haemulidae
+- lutjanidae
+- muraenidae
+- scaridae
+- serranidae
+- urchin
+- giant_clam
+- sea_cucumber
+- crown_of_thorns
+- lobster
+
+nc: 15
+path: datasets/FishInvSplit
+train: train/images
+val: valid/images
+test: test/images
