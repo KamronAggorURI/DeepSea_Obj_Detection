@@ -13,6 +13,10 @@ import pandas as pd
 from PIL import Image, ImageDraw
 import numpy as np
 
+# Define data-options dict:
+files = os.listdir()
+data_options = {file for file in files}
+
 # Import Necessary Dataset(s)
 run = True
 while run:
@@ -37,11 +41,17 @@ while run:
     5. Fish Inv + Megafauna + Deep Fish
     6. Bay Campus \n
     ''').strip()
+    print(f'''
+    Here you need to select the \033[1mdata\033[0m you want to use. Here are the options:
+    {data_options}
+    ''')
 
-  if data_choice not in ['1', '2', '3', '4', '5', '6']:
+  #if data_choice not in ['1', '2', '3', '4', '5', '6']:
+  if data_choice not in range(len(data_options)):
     print('Try again - enter one of the numbers in the list.')
     continue
 
+  # Change run condition if reqs are satisfied
   run = False
 
   print(f'You have selected the \033[1m{model_choice}\033[0m model and the \033[1m{data_choice}\033[0m dataset.')
