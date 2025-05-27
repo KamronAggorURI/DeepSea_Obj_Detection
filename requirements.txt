@@ -1,5 +1,5 @@
 shutil
-numpy
+numpy<2
 pandas
 matplotlib
 seaborn
@@ -12,3 +12,5 @@ torch
 torchvision
 pillow
 kagglehub
+tensorflow
+tensorflow-datasets

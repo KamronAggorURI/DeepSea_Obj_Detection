@@ -3,31 +3,14 @@
 
 # Import Libraries
 import os
-import tensorflow as tf
-import tensorflow_datasets as tfds
+# import tensorflow as tf # <- This is not used in the current code, but can be useful for loading datasets in cloud applications
+# import tensorflow_datasets as tfds # <- This is not used in the current code, but can be useful for loading datasets in cloud applications
 import shutil
-import glob
 import random
 import torch
-import pandas as pd
 from ultralytics import YOLO
 from pathlib import Path
 
-# First, edit the .yaml file to include the correct paths for the train, val, and test directories.
-with open('datasets/FishInvSplit/data.yaml', 'r') as f:
-  data = f.read()
-data = data.replace('train: ../train/images', 'train: /content/FishInvSplit/train/images')
-data = data.replace('val: ../val/images', 'val: /content/FishInvSplit/val/images')
-data = data.replace('test: ../test/images', 'test: /content/FishInvSplit/test/images')
-with open('datasets/FishInvSplit/data.yaml', 'w') as f:
-  f.write(data)
-
-# Next, edit the Ultralytics/settings.json to ensure that the dataset directory is correct.
-with open('ultralytics/settings.json', 'r') as f:
-  data = f.read()
-data = data.replace('"dataset": "../datasets/FishInvSplit"', '"dataset": "/content/FishInvSplit"')
-with open('ultralytics/settings.json', 'w') as f:
-  f.write(data)
 
 # Define the ModelUtils class
 # This class will handle the model and data selection, training, testing, and result saving.
@@ -40,40 +23,40 @@ class ModelUtils:
         self.data = None
         self.results = None
 
-    def set_model(self):
-        if self.model_choice == '1': # Pre-trained YOLO Model
-            self.model = YOLO('yolov8n.pt') # Here we load pre-trained YOLO model
-            
-        elif self.model_choice == '2': # Use our latest model
-            with open('code/data/trained models/best.pt'):
-                self.model = YOLO('code/trained models/best.pt')
-                # Here we load our latest model from Colab; add your own model path here
+    def yaml_config(self, yaml_path):
+        # update the yaml file w the correct paths for the train, validation, and test dirs
+        if not os.path.exists(yaml_path):
+            raise FileNotFoundError(f"The specified YAML file does not exist: {yaml_path}")
+        with open(yaml_path, 'r') as f:
+            data = f.read()
+        dataset_dir = os.path.dirname(yaml_path)
+        data = data.replace('train: ../train/images', f'train: {os.path.join(dataset_dir)}/train/images')
+        data = data.replace('val: ../val/images', f'val: {os.path.join(dataset_dir)}/val/images')
+        data = data.replace('test: ../test/images', f'test: {os.path.join(dataset_dir)}/test/images')
+        with open(yaml_path, 'w') as f:
+            f.write(data)
+        print(f"YAML configuration updated for {yaml_path}.")
 
+    def set_model(self):
+        model_path = os.path.join('models', self.model_choice)
+        if os.path.exists(model_path):
+            self.model = YOLO(model_path)
         else:
-            raise ValueError("Invalid model choice")
+            raise FileNotFoundError(f"The specified model file does not exist: {model_path}")
         return self.model
 
     def set_data(self):
-        if self.data_choice == '1':
-            self.data = 'datasets/FishInvSplit/data.yaml'
-
-        elif self.data_choice == '2':
-            self.data = 'data/fishinv_megafauna.yaml'
-
-        elif self.data_choice == '3':
-            self.data = 'data/deepfish.yaml'
-
-        elif self.data_choice == '4':
-            self.data = 'data/fishinv_deepfish.yaml'
-
-        elif self.data_choice == '5':
-            self.data = 'data/fishinv_megafauna_deepfish.yaml'
-
-        elif self.data_choice == '6':
-            self.data = 'data/baycampus.yaml'
-
+        data_yaml = os.path.join('datasets', self.data_choice, 'data.yaml')
+        if os.path.exists(data_yaml):
+            self.data = data_yaml
         else:
-            raise ValueError("Invalid data choice")
+            raise FileNotFoundError(f"The specified data YAML file does not exist: {data_yaml}")
+        return self.data
+
+        # Here we load the data from the YAML file
+        self.data = YOLO(self.data)
+        # This will load the data from the YAML file and return it as a YOLO object
+        print(f"Data loaded from {self.data}.")
 
         return self.data
 
@@ -110,11 +93,6 @@ class ModelUtils:
     def set_model_device(self):
         device = self.set_device()
         self.model.to(device)
-        return device
-
-    def set_data_device(self):
-        device = self.set_device()
-        self.data.to(device)
         return device
 
     # Here we use our data to train the model
@@ -164,10 +142,14 @@ class ModelUtils:
 
     # Here we run the entire process
     def run(self):
+        self.set_seed()
+        self.set_model_device()
         self.set_model()
         self.set_data()
+        self.yaml_config(self.data)
         self.train_model()
         self.test_model()
         self.save_results()
         self.cleanup()
         return True
+    

@@ -5,13 +5,8 @@ This will serve as a way for us to easily benchmark and test our different sourc
 
 # Import Necessary Libraries
 from ultralytics import YOLO
-import pathlib, shutil, glob, os, torch, random
-from yaspin import yaspin
+import os
 from model_Utils import ModelUtils
-import pandas as pd
-# import kagglehub as kh
-from PIL import Image, ImageDraw
-import numpy as np
 
 # Define data-options dict:
 files = os.listdir()
@@ -74,14 +69,13 @@ while run:
   print("Available datasets:")
   for i, dataset in enumerate(dataset_names, start=1):
       print(f"{i}. {dataset}")
-
-  data_choice = input("Select a dataset by entering the corresponding number: ").strip()
+  data_choice = input("\nSelect a dataset by entering the corresponding number: ").strip()
+  
   print("Available models:")
-
   for i, model in enumerate(model_names, start=1):
       print(f"{i}. {model}")
-
-  model_choice = input("Select a model by entering the corresponding number: ").strip()
+  model_choice = input("\nSelect a model by entering the corresponding number: ").strip()
+  
   data_choice = int(data_choice) - 1  # Convert to index
   model_choice = int(model_choice) - 1 
   data_choice = dataset_names[data_choice]
@@ -95,10 +89,6 @@ while run:
       print(f"Model '{model_choice}' not found in the 'models' directory.")
       exit(1)
 
-  if data_choice not in range(len(data_options)):
-    print('Try again - enter one of the numbers in the list.')
-    continue
-
   # Change run condition if reqs are satisfied
   run = False
 
@@ -107,12 +97,14 @@ while run:
   # Set up the model and data
   try:
       utils = ModelUtils(model_choice, data_choice)
+      utils.yaml_config(os.path.join(datasets_dir, data_choice, 'data.yaml'))
+      print('YAML Configuration Complete.')
       model = utils.set_model()
       data = utils.set_data()
-      print('Model and Data Set Up Complete!')
+      print('Model and Data Set Up Complete.')
       print(f'Testing the {model_choice} model with the {data_choice} dataset.')
       utils.run()
-      print('Testing Complete!')
+      print("Testing Complete. Results saved in the 'data' directory.")
 
   except Exception as e:
       print('There was an error with the training and/or testing. Please check the system logs for more information.')
