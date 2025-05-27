@@ -3,6 +3,8 @@
 
 # Import Libraries
 import os
+import tensorflow as tf
+import tensorflow_datasets as tfds
 import shutil
 import glob
 import random
@@ -75,18 +77,23 @@ class ModelUtils:
 
         return self.data
 
-    # Here we set the seed for reproducibility
+    # Here we set the seed
     # This is important for ensuring that the results are consistent across different runs
     # Furthermore, we want to be able to explicitly set the seed for the model and data
     def set_seed(self, seed=42):
         random.seed(seed)
         torch.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
-        os.environ['PYTHONHASHSEED'] = str(seed)
-        os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
-        os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':16:8'
-        os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':32:8'
-        os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':64:8'
+        os.environ['PYTHONHASHSEED'] = str(seed) # Set the Python hash seed for reproducibility
+
+        # Set the CUBLAS workspace config (NVIDIA GPU); the first value is the workspace size, and the second value is the number of threads
+        # The CUBLAS workspace config is important for ensuring that the model runs efficiently on the GPU
+        os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8' 
+        
+        os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':32:8' # This is a more conservative setting that should work on most GPUs
+        
+        os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':64:8' # This is a more conservative setting that should work on most GPUs
+
         return True
 
     # Here we set the device for the model and data
