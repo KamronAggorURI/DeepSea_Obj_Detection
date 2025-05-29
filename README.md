@@ -20,6 +20,7 @@ DeepSea_Obj_Detection/
             ...
     src/
         main.py                 # Main script; select a model and a dataset, train the model and save any test results and the .pt to the 'data' directory
+        model_Utils.py          # Helper class
         inference.py            # Run trained model on test videos
     notebooks/
         data_organizer.py       # Notebook to upload data and format into the correct style for 'datasets' directory.
