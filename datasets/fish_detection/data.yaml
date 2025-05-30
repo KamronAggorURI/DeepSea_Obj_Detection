@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['fish']
+
+roboflow:
+  workspace: fish-vdphw
+  project: fish_detection-z6be1
+  version: 1
+  license: MIT
+  url: https://universe.roboflow.com/fish-vdphw/fish_detection-z6be1/dataset/1

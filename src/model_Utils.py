@@ -99,14 +99,14 @@ class ModelUtils:
     def train_model(self):
         print("Training Model...")
         self.model.train(data=self.data, epochs=10, imgsz=640, batch=16)
-        print("✔ Training Complete")
+        print("Training Complete.")
         return self.model
 
     # Here we use our data to test and benchmark the model
     def test_model(self):
         print("Testing Model...")
         self.results = self.model.val(data=self.data, imgsz=640, batch=16)
-        print("✔ Testing Complete")
+        print("Testing Complete.")
         return self.results
 
     # Here we save the results of the model
@@ -117,7 +117,7 @@ class ModelUtils:
         results_dir = Path("results")
         results_dir.mkdir(parents=True, exist_ok=True)
         self.results.save(results_dir)
-        print("✔ Results Saved")
+        print("Results Saved.")
         return results_dir
 
     # Here is a train_test function that will do training, testing, and save the results
@@ -130,14 +130,14 @@ class ModelUtils:
             self.train_model()  
         self.test_model()
         self.save_results()
-        print("✔ Training and Testing Complete")
+        print("Training and Testing Complete.")
         return True
 
     # Here we cleanup the runs directory after training and testing, removing unnecessary files
     def cleanup(self):
         print("Cleaning Up...")
         shutil.rmtree("runs")
-        print("✔ Cleanup Complete")
+        print("Cleanup Complete.")
         return True
 
     # Here we run the entire process
