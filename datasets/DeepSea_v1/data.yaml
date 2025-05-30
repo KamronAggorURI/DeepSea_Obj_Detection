@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 3
+names: ['eel', 'fish', 'pole']
+
+roboflow:
+  workspace: deepseaobjectdetection
+  project: deep-sea-object-detection
+  version: 3
+  license: Private
+  url: https://app.roboflow.com/deepseaobjectdetection/deep-sea-object-detection/3
