@@ -1,13 +1,10 @@
-shutil
 numpy<2
 pandas
 matplotlib
 seaborn
 scikit-learn
-glob
 yaspin
 ultralytics
-pathlib
 torch
 torchvision
 pillow
