@@ -6,7 +6,7 @@ This will serve as a way for us to easily benchmark and test our different sourc
 # Import Necessary Libraries
 from ultralytics import YOLO
 import os
-from model_Utils import ModelUtils
+from model_Utils import ModelUtils, ModelPreprocessing
 
 # Define data-options dict:
 files = os.listdir()
@@ -96,15 +96,21 @@ while run:
   print('Please wait while we set up the model and data...')
   # Set up the model and data
   try:
-      utils = ModelUtils(model_choice, data_choice)
-      utils.yaml_config(os.path.join(datasets_dir, data_choice, 'data.yaml'))
-      print('YAML Configuration Complete.')
-      model = utils.set_model()
-      data = utils.set_data()
-      print('Model and Data Set Up Complete.')
-      print(f'Testing the {model_choice} model with the {data_choice} dataset.')
-      utils.run()
-      print("Testing Complete. Results saved in the 'data' directory.")
+    # Model Preprocessing
+    model_preprocessing = ModelPreprocessing(model_choice, data_choice)
+    model_preprocessing.preprocess_dataset(os.path.join(datasets_dir, data_choice))
+    print('Model Preprocessing Complete.')
+
+    # Model Utils
+    utils = ModelUtils(model_choice, data_choice)
+    utils.yaml_config(os.path.join(datasets_dir, data_choice, 'data.yaml'))
+    print('YAML Configuration Complete.')
+    model = utils.set_model()
+    data = utils.set_data()
+    print('Model and Data Set Up Complete.')
+    print(f'Testing the {model_choice} model with the {data_choice} dataset.')
+    utils.run()
+    print("Testing Complete. Results saved in the 'data' directory.")
 
   except Exception as e:
       print('There was an error with the training and/or testing. Please check the system logs for more information.')
