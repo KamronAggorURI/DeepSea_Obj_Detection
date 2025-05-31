@@ -6,11 +6,12 @@ import os
 # import tensorflow as tf # <- This is not used in the current code, but can be useful for loading datasets in cloud applications
 # import tensorflow_datasets as tfds # <- This is not used in the current code, but can be useful for loading datasets in cloud applications
 import shutil
+import glob
 import random
 import torch
 from ultralytics import YOLO
 from pathlib import Path
-
+from PIL import Image, ImageEnhance
 
 # Define the ModelUtils class
 # This class will handle the model and data selection, training, testing, and result saving.
@@ -22,6 +23,62 @@ class ModelUtils:
         self.model = None
         self.data = None
         self.results = None
+
+    def check_and_structure_dataset(self, dataset_path):
+        """
+        Checks if the dataset at dataset_path is structured for YOLO (train/val/test with images/labels).
+        If not, attempts to restructure it.
+        """
+        required_dirs = ['train/images', 'train/labels', 'val/images', 'val/labels']
+        missing = []
+        for d in required_dirs:
+            if not os.path.isdir(os.path.join(dataset_path, d)):
+                missing.append(d)
+        if not missing:
+            print(f"Dataset at {dataset_path} is already structured.")
+            return True
+
+        print(f"Dataset missing directories: {missing}. Attempting to restructure...")
+
+        # Try to move all images to train/images and all labels to train/labels IF flat
+        image_exts = ('*.jpg', '*.jpeg', '*.png')
+        label_exts = ('*.txt',)
+        images = []
+        for ext in image_exts:
+            images.extend(glob.glob(os.path.join(dataset_path, ext)))
+        labels = []
+        for ext in label_exts:
+            labels.extend(glob.glob(os.path.join(dataset_path, ext)))
+
+        # Create directories if they don't exist
+        os.makedirs(os.path.join(dataset_path, 'train/images'), exist_ok=True)
+        os.makedirs(os.path.join(dataset_path, 'train/labels'), exist_ok=True)
+
+        # Move images and labels
+        for img in images:
+            shutil.move(img, os.path.join(dataset_path, 'train/images', os.path.basename(img)))
+        for lab in labels:
+            shutil.move(lab, os.path.join(dataset_path, 'train/labels', os.path.basename(lab)))
+
+        print(f"Moved {len(images)} images and {len(labels)} labels to train/.")
+
+        # Optionally, split into train/val/test here if needed
+        # Check again
+        for d in required_dirs:
+            if not os.path.isdir(os.path.join(dataset_path, d)):
+                print(f"Warning: Directory {d} still missing after restructuring.")
+                return False
+
+        print(f"Dataset at {dataset_path} structured successfully.")
+        return True
+
+        # Create the necessary directories if they do not exist
+        for subdir in ['train', 'val', 'test']:
+            subdir_path = os.path.join(dataset_path, subdir, 'images')
+            os.makedirs(subdir_path, exist_ok=True)
+
+        print(f"Dataset structured at {dataset_path}.")
+        return dataset_path
 
     def yaml_config(self, yaml_path):
         # update the yaml file w the correct paths for the train, validation, and test dirs
@@ -69,23 +126,26 @@ class ModelUtils:
         torch.cuda.manual_seed_all(seed)
         os.environ['PYTHONHASHSEED'] = str(seed) # Set the Python hash seed for reproducibility
 
-        # Set the CUBLAS workspace config (NVIDIA GPU); the first value is the workspace size, and the second value is the number of threads
-        # The CUBLAS workspace config is important for ensuring that the model runs efficiently on the GPU
-        os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8' 
-        
-        os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':32:8' # This is a more conservative setting that should work on most GPUs
-        
-        os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':64:8' # This is a more conservative setting that should work on most GPUs
-
         return True
 
     # Here we set the device for the model and data
     # This is important for ensuring that the model and data are on the same device
     # Furthermore, we want to be able to explicitly set the device for the model and data
     def set_device(self):
+        # Prefer CUDA if available, then MPS (Apple Silicon), then DirectML (Windows), else CPU
         if torch.cuda.is_available():
-            device = torch.device('cuda')
+            os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
+            if torch.backends.cudnn.is_available():
+                torch.backends.cudnn.benchmark = True
+                device = torch.device('cuda')
+        elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+            # Apple Metal Performance Shaders (MPS) for Apple Silicon
+            device = torch.device('mps')
+        elif hasattr(torch.backends, 'directml') and torch.backends.directml.is_available():
+            # DirectML for Windows (experimental in PyTorch)
+            device = torch.device('directml')
         else:
+            # Default to CPU
             device = torch.device('cpu')
         return device
 
@@ -152,4 +212,101 @@ class ModelUtils:
         self.save_results()
         self.cleanup()
         return True
+    
+# This class handles preprocessing of the model and data before training and testing
+class ModelPreprocessing:
+    def __init__(self, model_choice, data_choice):
+        self.model_choice = model_choice
+        self.data_choice = data_choice
+
+    def crop(self, image, crop_size):
+        # Crop the image to the specified size
+        return image.crop((0, 0, crop_size[0], crop_size[1]))
+
+    def resize(self, image, size):
+        # Resize the image to the specified size
+        return image.resize(size, resample=Image.BILINEAR)
+
+    def normalize(self, image):
+        # Normalize the image to the range [0, 1]
+        return image / 255.0
+
+    def greyscale(self, image):
+        # Convert the image to grayscale
+        return image.convert('L')
+
+    def flip(self, image):
+        return image.transpose(Image.FLIP_LEFT_RIGHT)
+
+    def rotate(self, image, angle):
+        # Rotate the image by the specified angle
+        return image.rotate(angle, expand=True)
+
+    def brightness(self, image, factor):
+        # Adjust the brightness of the image
+        enhancer = ImageEnhance.Brightness(image)
+        return enhancer.enhance(factor)
+
+    def contrast(self, image, factor):
+        # Adjust the contrast of the image
+        enhancer = ImageEnhance.Contrast(image)
+        return enhancer.enhance(factor)
+    
+    def saturation(self, image, factor):
+        # Adjust the saturation of the image
+        enhancer = ImageEnhance.Color(image)
+        return enhancer.enhance(factor)
+
+    def hue(self, image, factor):
+        # Adjust the hue of the image
+        # Note: PIL does not have a built-in method for hue adjustment, so we convert to HSV and adjust
+        hsv_image = image.convert('HSV')
+        h, s, v = hsv_image.split()
+        h = h.point(lambda p: (p + factor) % 256)
+        return Image.merge('HSV', (h, s, v)).convert('RGB')
+
+    def rand_augment(self, image):
+        # This will apply a random augmentation to an image
+        augmentations = [
+            lambda img: self.crop(img, (224, 224)),
+            lambda img: self.resize(img, (224, 224)),
+            lambda img: self.normalize(img),
+            lambda img: self.greyscale(img),
+            lambda img: self.flip(img),
+            lambda img: self.rotate(img, random.randint(0, 360)),
+            lambda img: self.brightness(img, random.uniform(0.5, 1.5)),
+            lambda img: self.contrast(img, random.uniform(0.5, 1.5)),
+            lambda img: self.saturation(img, random.uniform(0.5, 1.5)),
+            lambda img: self.hue(img, random.randint(-30, 30))
+        ]
+        augmentation = random.choice(augmentations)
+        return augmentation(image)
+
+    def preprocess_image(self, image_path):
+        # Load the image
+        image = Image.open(image_path).convert('RGB')
+        # Apply random augmentation
+        image = self.rand_augment(image)
+        return image
+
+    def preprocess_dataset(self, dataset_path):
+        # Preprocess all images in the dataset
+        image_paths = glob.glob(os.path.join(dataset_path, 'train/images', '*.jpg')) + \
+                      glob.glob(os.path.join(dataset_path, 'train/images', '*.png'))
+        for image_path in image_paths:
+            image = self.preprocess_image(image_path)
+            # Save the preprocessed image back to the same path
+            image.save(image_path)
+        print(f"Preprocessing complete for dataset at {dataset_path}.")
+        return True
+
+    def run(self):
+        # Run the preprocessing on the dataset
+        dataset_path = os.path.join('datasets', self.data_choice)
+        if not os.path.exists(dataset_path):
+            raise FileNotFoundError(f"The specified dataset path does not exist: {dataset_path}")
+        self.preprocess_dataset(dataset_path)
+        print("Model preprocessing complete.")
+        return True
+    
     
